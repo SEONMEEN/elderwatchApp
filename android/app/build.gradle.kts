@@ -1,44 +1,40 @@
 plugins {
     id("com.android.application")
+    // START: FlutterFire Configuration
+    id("com.google.gms.google-services")
+    // END: FlutterFire Configuration
     id("kotlin-android")
-    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
 
 android {
     namespace = "com.example.project_application"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+
+    // ✅ กำหนดเป็นตัวเลข ไม่อิง flutter.*
+    compileSdk = 34                      // ใช้ 34 (หรือ 35 ถ้าคุณติดตั้งครบ)
+    ndkVersion = "29.0.13846066"         // ← ใส่ให้ "ตรงกับชื่อโฟลเดอร์จริง" ใน .../Android/Sdk/ndk/
+                                         // ถ้าโฟลเดอร์เป็น 29.0.13846066-rc3 ให้ใส่ "-rc3" ให้ตรง
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
     }
-
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_11.toString()
-    }
+    kotlinOptions { jvmTarget = JavaVersion.VERSION_11.toString() }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.example.project_application"
-        // You can update the following values to match your application needs.
-        // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
-        targetSdk = flutter.targetSdkVersion
+        minSdk = flutter.minSdkVersion                      // Firebase Database ต้องอย่างน้อย 23
+        targetSdk = 34                   // หรือ 35 ถ้าคุณมี
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
         }
     }
 }
 
-flutter {
-    source = "../.."
-}
+flutter { source = "../.." }
+

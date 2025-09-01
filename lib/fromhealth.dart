@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
-import 'main.dart';
 import 'package:flutter/services.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'bottom_menu.dart';
+import 'main.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class Fromhealth extends StatefulWidget {
   @override
@@ -9,28 +12,132 @@ class Fromhealth extends StatefulWidget {
 
 class _FromhealthState extends State<Fromhealth> {
   final String icon = "assets/images/icon.png";
+  int _selectedIndex = 1;
 
-  // ข้อมูลสำหรับ dropdown แต่ละตัว
+  // ใช้ UID จริงจากผู้ใช้ที่ล็อกอิน (ต้องล็อกอินก่อนถึงเข้าหน้านี้ได้)
+  late final String _docId = FirebaseAuth.instance.currentUser!.uid;
+
+  // ---- state / controllers
+  final TextEditingController _ageCtrl = TextEditingController();
+  String? _gender; // label ไทย: ชาย/หญิง
+  String? _selectedChestPain; // label ไทย
+  String? _fbs; // ใช่/ไม่ใช่
+  String? _exang; // มี/ไม่มี
+  int? _thalachFromDB; // ถ้ามีค่าใน DB จะใช้ค่านี้
+  bool _loading = true;
+
+  // ---- dropdown lists
   final List<String> _genders = ['ชาย', 'หญิง'];
-  String? _gender;
-
   final List<String> _chestPainTypes = [
     'เจ็บหน้าอกแบบปกติ (Typical Angina)',
     'เจ็บหน้าอกผิดปกติ (Atypical Angina)',
     'เจ็บหน้าอกไม่เกี่ยวกับหัวใจ (Non-anginal Pain)',
     'ไม่มีอาการเจ็บหน้าอก (Asymptomatic)',
   ];
-  String? _selectedChestPain;
-
   final List<String> _fbsTypes = ['ใช่', 'ไม่ใช่'];
-  String? _fbs;
   final List<String> _exangTypes = ['มี', 'ไม่มี'];
-  String? _exang;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadExisting(); // โหลดค่าที่เคยบันทึกไว้ทันที
+  }
+
+  @override
+  void dispose() {
+    _ageCtrl.dispose();
+    super.dispose();
+  }
+
+  // ========= map label -> ตัวเลข (UCI Heart)
+  int? _mapSex(String? g) => g == null ? null : (g == 'ชาย' ? 1 : 0);
+  int? _mapCp(String? cp) =>
+      cp == null ? null : _chestPainTypes.indexOf(cp); // 0..3
+  int? _mapYesNo(String? v) => v == null ? null : (v == 'ใช่' ? 1 : 0);
+  int? _mapExang(String? v) => v == null ? null : (v == 'มี' ? 1 : 0);
+
+  // ========= map ตัวเลขจาก DB -> label ไทย (ใช้ตอน prefill)
+  String? _sexLabel(dynamic v) {
+    final n = v is num ? v.toInt() : int.tryParse('$v');
+    if (n == null) return null;
+    return n == 1 ? 'ชาย' : 'หญิง';
+  }
+
+  String? _cpLabel(dynamic v) {
+    final n = v is num ? v.toInt() : int.tryParse('$v');
+    if (n == null) return null;
+    return (n >= 0 && n < _chestPainTypes.length) ? _chestPainTypes[n] : null;
+  }
+
+  String? _yesNoLabel(dynamic v) {
+    final n = v is num ? v.toInt() : int.tryParse('$v');
+    if (n == null) return null;
+    return n == 1 ? 'ใช่' : 'ไม่ใช่';
+  }
+
+  String? _exangLabel(dynamic v) {
+    final n = v is num ? v.toInt() : int.tryParse('$v');
+    if (n == null) return null;
+    return n == 1 ? 'มี' : 'ไม่มี';
+  }
+
+  int? get _ageInt {
+    if (_ageCtrl.text.trim().isEmpty) return null;
+    return int.tryParse(_ageCtrl.text.trim());
+  }
+
+  int? get _thalachEstimate {
+    final a = _ageInt;
+    if (a == null) return null;
+    return 220 - a;
+  }
+
+  Future<void> _loadExisting() async {
+    try {
+      final snap =
+          await FirebaseFirestore.instance
+              .collection('heart_assessments')
+              .doc(_docId)
+              .get();
+
+      final data = snap.data();
+      final input = (data?['input'] ?? {}) as Map<String, dynamic>;
+
+      if (input.isNotEmpty) {
+        _ageCtrl.text = (input['age'] ?? '').toString();
+        _gender = _sexLabel(input['sex']);
+        _selectedChestPain = _cpLabel(input['cp']);
+        _fbs = _yesNoLabel(input['fbs']);
+        _exang = _exangLabel(input['exang']);
+        final t = input['thalach'];
+        _thalachFromDB = t is num ? t.toInt() : int.tryParse('$t');
+      }
+    } catch (e) {
+      debugPrint('Load existing failed: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  void _onMenuTap(int index) {
+    setState(() => _selectedIndex = index);
+    switch (index) {
+      case 0:
+        Navigator.pushNamed(context, '/home');
+        break;
+      case 1:
+        // หน้าปัจจุบัน
+        break;
+      case 2:
+        Navigator.pushNamed(context, '/profile'); // หรือ '/security' ถ้ามี
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromRGBO(246, 222, 216, 1),
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       body: SingleChildScrollView(
         child: Center(
           child: Column(
@@ -44,13 +151,17 @@ class _FromhealthState extends State<Fromhealth> {
           ),
         ),
       ),
+      bottomNavigationBar: BottomMenuBar(
+        currentIndex: _selectedIndex,
+        onTap: _onMenuTap,
+      ),
     );
   }
 
   Widget _buildHeader(BuildContext context) {
     return Container(
       height: 100,
-      color: const Color.fromRGBO(246, 222, 216, 1),
+      color: const Color.fromARGB(255, 255, 255, 255),
       child: Stack(
         children: [
           const SizedBox(height: 10),
@@ -67,22 +178,6 @@ class _FromhealthState extends State<Fromhealth> {
                   MaterialPageRoute(builder: (context) => MyApp()),
                 );
               },
-              child: Container(
-                width: 60,
-                height: 30,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topRight: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
-                  ),
-                ),
-                child: const Icon(
-                  Icons.health_and_safety,
-                  color: Color.fromRGBO(184, 33, 50, 1),
-                  size: 18,
-                ),
-              ),
             ),
           ),
         ],
@@ -91,23 +186,15 @@ class _FromhealthState extends State<Fromhealth> {
   }
 
   Widget _buildFormContainer() {
-    return Container(
-      width: 330,
-      decoration: BoxDecoration(
-        color: const Color.fromRGBO(184, 33, 50, 1),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 20),
-        child: Center(
-          child: Container(
-            width: 300,
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
+    final inner =
+        _loading
+            ? const Center(
+              child: Padding(
+                padding: EdgeInsets.all(20),
+                child: CircularProgressIndicator(),
+              ),
+            )
+            : Column(
               children: [
                 _buildAgeField(),
                 const SizedBox(height: 20),
@@ -138,10 +225,30 @@ class _FromhealthState extends State<Fromhealth> {
                   value: _exang,
                   onChanged: (v) => setState(() => _exang = v),
                 ),
-                const SizedBox(height: 30),
+                const SizedBox(height: 24),
+                _buildSummaryCard(),
+                const SizedBox(height: 24),
                 Center(child: _buildSaveButton()),
               ],
+            );
+
+    return Container(
+      width: 330,
+      decoration: BoxDecoration(
+        color: const Color.fromRGBO(227, 228, 253, 1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Center(
+          child: Container(
+            width: 300,
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
             ),
+            child: inner,
           ),
         ),
       ),
@@ -175,6 +282,8 @@ class _FromhealthState extends State<Fromhealth> {
             border: Border.all(color: const Color(0xFFE2E8F0), width: 1.5),
           ),
           child: TextFormField(
+            controller: _ageCtrl,
+            onChanged: (_) => setState(() {}), // อัปเดตสรุบทันที
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
@@ -269,19 +378,153 @@ class _FromhealthState extends State<Fromhealth> {
     );
   }
 
+  Widget _buildSummaryCard() {
+    final sexNum = _mapSex(_gender);
+    final cpNum = _mapCp(_selectedChestPain);
+    final fbsNum = _mapYesNo(_fbs);
+    final exangNum = _mapExang(_exang);
+    final age = _ageInt;
+    final thalach = _thalachFromDB ?? _thalachEstimate; // ใช้ค่าจาก DB ก่อน
+
+    return Container(
+      width: 280,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            "สรุปข้อมูลที่เลือก",
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          _row("UID", _docId), // แสดง UID ที่นี่
+          _row("อายุ", age?.toString() ?? "-"),
+          _row(
+            "เพศ",
+            _gender ?? "-",
+            sub: sexNum == null ? null : "(sex=$sexNum)",
+          ),
+          _row(
+            "อาการเจ็บหน้าอก",
+            _selectedChestPain ?? "-",
+            sub: cpNum == null ? null : "(cp=$cpNum)",
+          ),
+          _row(
+            "FBS > 120 mg/dl",
+            _fbs ?? "-",
+            sub: fbsNum == null ? null : "(fbs=$fbsNum)",
+          ),
+          _row(
+            "เจ็บหน้าอกจากการออกกำลังกาย",
+            _exang ?? "-",
+            sub: exangNum == null ? null : "(exang=$exangNum)",
+          ),
+          _row("thalach", thalach?.toString() ?? "-"),
+        ],
+      ),
+    );
+  }
+
+  Widget _row(String k, String v, {String? sub}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(width: 150, child: Text(k)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(v, style: const TextStyle(fontWeight: FontWeight.w600)),
+                if (sub != null)
+                  Text(
+                    sub,
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSaveButton() {
     return ElevatedButton(
-      onPressed: () {
-        print("บันทึกแล้ว");
+      onPressed: () async {
+        final age = _ageInt;
+        final dataOK =
+            age != null &&
+            _gender != null &&
+            _selectedChestPain != null &&
+            _fbs != null &&
+            _exang != null;
+
+        if (!dataOK) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('กรอก/เลือกข้อมูลให้ครบก่อนนะ')),
+          );
+          return;
+        }
+
+        final payload = {
+          'age': age,
+          'sex': _mapSex(_gender),
+          'cp': _mapCp(_selectedChestPain),
+          'fbs': _mapYesNo(_fbs),
+          'exang': _mapExang(_exang),
+          'thalach': _thalachFromDB ?? _thalachEstimate, // เก็บค่าที่โชว์
+        };
+
+        try {
+          await FirebaseFirestore.instance
+              .collection('heart_assessments')
+              .doc(_docId)
+              .set({
+                'input': payload,
+                'updatedAt': FieldValue.serverTimestamp(),
+              }, SetOptions(merge: true));
+
+          if (!mounted) return;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('บันทึกเรียบร้อย')));
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('บันทึกไม่สำเร็จ: $e')));
+        }
+
+        showDialog(
+          context: context,
+          builder:
+              (_) => AlertDialog(
+                title: const Text('สรุปข้อมูลที่บันทึก'),
+                content: Text(payload.toString()),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('ปิด'),
+                  ),
+                ],
+              ),
+        );
       },
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color.fromRGBO(184, 33, 50, 1),
+        backgroundColor: const Color.fromRGBO(215, 239, 220, 1),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 14),
       ),
       child: const Text(
         "บันทึก",
-        style: TextStyle(fontSize: 15, color: Colors.white),
+        style: TextStyle(fontSize: 15, color: Color.fromARGB(255, 0, 0, 0)),
       ),
     );
   }

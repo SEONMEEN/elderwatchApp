@@ -2,28 +2,28 @@ import 'package:flutter/material.dart';
 
 class Detailbox extends StatelessWidget {
   String title;
-  double hieght;
   double width;
   final num? value;
   final String? image;
-  String unitorstatus;
+  final String? unitorstatus;
   final Color color;
+  String type;
 
   Detailbox(
     this.title,
-    this.hieght,
     this.width,
     this.value,
     this.image,
     this.unitorstatus,
     this.color,
+    this.type,
   );
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: width,
-      height: hieght,
+      padding: const EdgeInsets.all(2),
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(20),
@@ -65,30 +65,81 @@ class Detailbox extends StatelessWidget {
                   Image.asset(image!, width: 120, height: 140),
                   SizedBox(width: 10),
                   Text(
-                    "Normal",
+                    (unitorstatus != null && unitorstatus == "Normal")
+                        ? "ปกติ"
+                        : (unitorstatus != null && unitorstatus == "Fall")
+                        ? "ล้ม"
+                        : "ชัก",
                     style: TextStyle(
-                      color: const Color.fromARGB(255, 0, 0, 0),
-                      fontSize: 20,
-                      fontWeight: FontWeight.normal,
-                    ),
-                  ),
-                ] else ...[
-                  Text(
-                    "$value",
-                    style: TextStyle(
-                      color: const Color.fromARGB(255, 0, 0, 0),
+                      color:
+                          (unitorstatus != null && unitorstatus == "Normal")
+                              ? const Color.fromRGBO(56, 142, 60, 1)
+                              : Colors.red,
                       fontSize: 30,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(width: 10),
-                  Text(
-                    unitorstatus,
-                    style: TextStyle(
-                      color: const Color.fromARGB(255, 0, 0, 0),
-                      fontSize: 20,
-                      fontWeight: FontWeight.normal,
-                    ),
+                ] else ...[
+                  Row(
+                    // บังคับให้ Row จัด baseline แทน center
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+
+                    children: [
+                      //heart rate
+                      if (type == "heartrate") ...[
+                        Text(
+                          (value! > 100) ? "ผิดปกติ" : "ปกติ",
+                          style: TextStyle(
+                            color:
+                                (value != null && value! > 100)
+                                    ? Colors.red
+                                    : const Color.fromRGBO(56, 142, 60, 1),
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          "$value $unitorstatus",
+                          style: TextStyle(
+                            color:
+                                (value != null && value! > 100)
+                                    ? Colors.red
+                                    : const Color.fromRGBO(56, 142, 60, 1),
+                            fontSize: 16,
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                        const SizedBox(height: 50),
+                      ],
+                      // oxygen
+                      if (type == "oxygen") ...[
+                        Text(
+                          (value! > 100 || value! < 90) ? "ผิดปกติ" : "ปกติ",
+                          style: TextStyle(
+                            color:
+                                (value != null && (value! > 100 || value! < 90))
+                                    ? Colors.red
+                                    : const Color.fromRGBO(56, 142, 60, 1),
+                            fontSize: 30,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          "$value $unitorstatus",
+                          style: TextStyle(
+                            color:
+                                (value != null && (value! > 100 || value! < 90))
+                                    ? Colors.red
+                                    : const Color.fromRGBO(56, 142, 60, 1),
+                            fontSize: 16,
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ],
               ],
