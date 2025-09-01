@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'detailbox.dart';
 import 'fromhealth.dart';
+import 'bottom_menu.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({Key? key}) : super(key: key);
@@ -14,6 +15,20 @@ class _HomePageState extends State<HomePage> {
   var oxygen = 95;
   var status = "Normal";
   var icon = "assets/images/icon.png";
+
+  // เก็บ index ของ tab ปัจจุบัน
+  int _selectedIndex = 0;
+  void _onMenuTap(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    // ถ้าอยาก push เป็น route ใหม่แทน ก็ทำตรงนี้ได้
+    // if (index == 1) {
+    //   Navigator.push(context,
+    //     MaterialPageRoute(builder: (_) => const FromHealth())
+    //   );
+    // }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -99,6 +114,10 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
+      ),
+      bottomNavigationBar: BottomMenuBar(
+        currentIndex: _selectedIndex,
+        onTap: _onMenuTap,
       ),
     );
   }
