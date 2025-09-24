@@ -28,6 +28,19 @@ android {
         versionCode = flutter.versionCode
         versionName = flutter.versionName
     }
+        packaging {
+        resources {
+            // เลือก .so ของ TFLite ถ้าเจอซ้ำหลายชุด ABI
+            pickFirsts += listOf(
+                "lib/**/libtensorflowlite_jni.so",
+                "lib/**/libxnnpack_delegate.so",
+                "lib/**/libnnapi_delegate.so"
+            )
+        }
+        // (ถ้าต้องการ) เปิด legacy packaging ของ jni
+        // jniLibs { useLegacyPackaging = true }
+    }
+
 
     buildTypes {
         release {

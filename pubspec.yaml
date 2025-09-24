@@ -40,6 +40,7 @@ dependencies:
   firebase_database: ^12.0.0
   cloud_firestore: ^6.0.0
   firebase_auth: ^6.0.1
+  tflite_flutter: ^0.11.0
   
   
 
@@ -78,6 +79,10 @@ flutter:
     - assets/images/status_normal.png
     - assets/images/status_fall.png
     - assets/images/status_seizure.png
+    - assets/models/mlp_best.tflite
+    - assets/models/scaler.json
+    - assets/models/features.json
+
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

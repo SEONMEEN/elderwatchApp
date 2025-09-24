@@ -104,6 +104,7 @@ class _HomePageState extends State<HomePage> {
                       "ครั้งต่อนาที",
                       const Color.fromRGBO(253, 227, 227, 1),
                       "heartrate",
+                      enablePrediction: true,
                     ),
                     const SizedBox(height: 30),
                     Detailbox(
@@ -114,6 +115,7 @@ class _HomePageState extends State<HomePage> {
                       "%",
                       const Color.fromRGBO(227, 242, 253, 1),
                       "oxygen",
+                      enablePrediction: false,
                     ),
                     const SizedBox(height: 30),
                     Detailbox(
@@ -124,6 +126,7 @@ class _HomePageState extends State<HomePage> {
                       "Normal",
                       const Color.fromRGBO(232, 254, 233, 1),
                       "status",
+                      enablePrediction: false,
                     ),
                     const SizedBox(height: 30),
                   ],

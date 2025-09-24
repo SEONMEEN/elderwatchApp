@@ -119,9 +119,6 @@ class _ProfilePageState extends State<ProfilePage> {
                           const SizedBox(height: 12),
                           _title('อีเมล'),
                           _pill(email),
-                          const SizedBox(height: 12),
-                          _title('UID'),
-                          _pill(uid),
                           const SizedBox(height: 20),
                           SizedBox(
                             width: double.infinity,
