@@ -250,154 +250,314 @@ class _DetailboxState extends State<Detailbox> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final abnormal = widget.value != null && widget.value! > 100;
+    final bool oxygenAbnormal =
+        widget.value != null && (widget.value! > 100 || widget.value! < 90);
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeInOut,
       width: widget.width,
-      padding: const EdgeInsets.all(2),
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: widget.color,
         borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          children: [
-            const SizedBox(height: 6),
+      // ✅ ปรับความสูงตาม _predProb
+      // ✅ ยืดเฉพาะกล่องหัวใจเท่านั้น
+      height:
+          (widget.type == "heartrate" && _predProb != null && _predProb! >= 0.5)
+              ? 480
+              : (widget.type == "oxygen")
+              ? 130
+              : 180,
 
-            // ===== แถบค่าทำนาย (กลางบนสุด) =====
-            if (widget.enablePrediction)
-              Center(
-                child: Text(
-                  !_ready
-                      ? 'กำลังโหลดโมเดล...'
-                      : (_err != null)
-                      ? _err!
-                      : (_predProb == null
-                          ? 'ยังไม่มีค่าทำนาย'
-                          : 'ค่าทำนาย: ${_predProb!.toStringAsFixed(3)} '),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ===== ส่วนค่าทำนาย =====
+          //if (widget.enablePrediction)
+          //  Center(
+          //    child: Text(
+          //      !_ready
+          //          ? 'กำลังโหลดโมเดล...'
+          //          : (_err != null)
+          //          ? _err!
+          //          : (_predProb == null
+          //              ? 'ยังไม่มีค่าทำนาย'
+          //              : 'ค่าทำนาย: ${_predProb!.toStringAsFixed(3)}'),
+          //      style: TextStyle(
+          //        color:
+          //            _predProb == null
+          //                ? Colors.grey
+          //                : (_predProb! >= 0.5 ? Colors.red : Colors.green),
+          //        fontWeight: FontWeight.w600,
+          //      ),
+          //    ),
+          //  ),
+          //const SizedBox(height: 6),
+
+          // ===== หัวข้อ =====
+          Text(
+            widget.title,
+            style: const TextStyle(
+              color: Colors.black,
+              fontSize: 20,
+              fontWeight: FontWeight.normal,
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // ===== แสดงค่าตัวเลข =====
+          if (widget.type == "heartrate") ...[
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  abnormal ? "ผิดปกติ" : "ปกติ",
                   style: TextStyle(
                     color:
-                        _predProb == null
-                            ? Colors.grey
-                            : (_predProb! >= 0.5 ? Colors.red : Colors.green),
-                    fontWeight: FontWeight.w600,
+                        abnormal
+                            ? Colors.red
+                            : const Color.fromRGBO(56, 142, 60, 1),
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-              ),
-
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Text(
-                  widget.title,
-                  style: const TextStyle(
-                    color: Color.fromARGB(255, 0, 0, 0),
-                    fontSize: 20,
-                    fontWeight: FontWeight.normal,
+                  "${widget.value ?? '-'} ${widget.unitorstatus ?? ''}",
+                  style: TextStyle(
+                    color:
+                        abnormal
+                            ? Colors.red
+                            : const Color.fromRGBO(56, 142, 60, 1),
+                    fontSize: 16,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 10),
-
-            // ===== เนื้อหาเดิม =====
+          ] else if (widget.type == "oxygen") ...[
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
               children: [
-                const SizedBox(width: 20),
-                if (widget.image != null) ...[
-                  Image.asset(widget.image!, width: 120, height: 140),
-                  const SizedBox(width: 10),
-                  Text(
-                    (widget.unitorstatus != null &&
-                            widget.unitorstatus == "Normal")
-                        ? "ปกติ"
-                        : (widget.unitorstatus != null &&
-                            widget.unitorstatus == "Fall")
-                        ? "ล้ม"
-                        : "ชัก",
-                    style: TextStyle(
-                      color:
-                          (widget.unitorstatus != null &&
-                                  widget.unitorstatus == "Normal")
-                              ? const Color.fromRGBO(56, 142, 60, 1)
-                              : Colors.red,
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                    ),
+                Text(
+                  oxygenAbnormal ? "ผิดปกติ" : "ปกติ",
+                  style: TextStyle(
+                    color:
+                        oxygenAbnormal
+                            ? Colors.red
+                            : const Color.fromRGBO(56, 142, 60, 1),
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
                   ),
-                ] else ...[
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      if (widget.type == "heartrate") ...[
-                        Text(
-                          (widget.value != null && widget.value! > 100)
-                              ? "ผิดปกติ"
-                              : "ปกติ",
-                          style: TextStyle(
-                            color:
-                                (widget.value != null && widget.value! > 100)
-                                    ? Colors.red
-                                    : const Color.fromRGBO(56, 142, 60, 1),
-                            fontSize: 30,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          "${widget.value ?? '-'} ${widget.unitorstatus ?? ''}",
-                          style: TextStyle(
-                            color:
-                                (widget.value != null && widget.value! > 100)
-                                    ? Colors.red
-                                    : const Color.fromRGBO(56, 142, 60, 1),
-                            fontSize: 16,
-                            fontWeight: FontWeight.normal,
-                          ),
-                        ),
-                        const SizedBox(height: 50),
-                      ],
-                      if (widget.type == "oxygen") ...[
-                        Text(
-                          (widget.value != null &&
-                                  (widget.value! > 100 || widget.value! < 90))
-                              ? "ผิดปกติ"
-                              : "ปกติ",
-                          style: TextStyle(
-                            color:
-                                (widget.value != null &&
-                                        (widget.value! > 100 ||
-                                            widget.value! < 90))
-                                    ? Colors.red
-                                    : const Color.fromRGBO(56, 142, 60, 1),
-                            fontSize: 30,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Text(
-                          "${widget.value ?? '-'} ${widget.unitorstatus ?? ''}",
-                          style: TextStyle(
-                            color:
-                                (widget.value != null &&
-                                        (widget.value! > 100 ||
-                                            widget.value! < 90))
-                                    ? Colors.red
-                                    : const Color.fromRGBO(56, 142, 60, 1),
-                            fontSize: 16,
-                            fontWeight: FontWeight.normal,
-                          ),
-                        ),
-                      ],
-                    ],
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  "${widget.value ?? '-'} ${widget.unitorstatus ?? ''}",
+                  style: TextStyle(
+                    color:
+                        oxygenAbnormal
+                            ? Colors.red
+                            : const Color.fromRGBO(56, 142, 60, 1),
+                    fontSize: 16,
                   ),
-                ],
+                ),
+              ],
+            ),
+          ] else if (widget.image != null) ...[
+            Row(
+              children: [
+                Image.asset(widget.image!, width: 100, height: 100),
+                const SizedBox(width: 12),
+                Text(
+                  (widget.unitorstatus ?? "Normal") == "Normal"
+                      ? "ปกติ"
+                      : (widget.unitorstatus == "Fall" ? "ล้ม" : "ชัก"),
+                  style: TextStyle(
+                    color:
+                        (widget.unitorstatus == "Normal")
+                            ? const Color.fromRGBO(56, 142, 60, 1)
+                            : Colors.red,
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ],
             ),
           ],
-        ),
+
+          // ===== ส่วนขยายเมื่อ pred สูง (>= 0.5) =====
+          // ✅ เฉพาะกล่องหัวใจเท่านั้นถึงแสดงข้อความเตือน
+          // ===== ส่วนแสดงระดับความเสี่ยง =====
+          if (widget.type == "heartrate" && _predProb != null) ...[
+            const SizedBox(height: 8),
+            const Divider(thickness: 1, color: Colors.white),
+            const SizedBox(height: 4),
+
+            Builder(
+              builder: (_) {
+                final p = _predProb!;
+                String level;
+                String note;
+                Color dotColor;
+                Color bgColor;
+
+                if (p < 0.25) {
+                  level = "น้อย";
+                  note = "หัวใจแข็งแรงดี ไม่มีสัญญาณผิดปกติ";
+                  dotColor = const Color(0xFF2E7D32);
+                  bgColor = const Color.fromARGB(255, 249, 249, 249);
+                } else if (p < 0.50) {
+                  level = "เฝ้าระวัง";
+                  note = "มีแนวโน้มเริ่มผิดปกติ ควรตรวจเช็กเป็นระยะ";
+                  dotColor = const Color(0xFFF9A825);
+                  bgColor = const Color.fromARGB(255, 249, 249, 249);
+                } else if (p < 0.75) {
+                  level = "เสี่ยงสูง";
+                  note = "มีความเสี่ยงเป็นโรคหัวใจ ควรพบแพทย์";
+                  dotColor = const Color(0xFFF57C00);
+                  bgColor = const Color.fromARGB(255, 249, 249, 249);
+                } else {
+                  level = "เสี่ยงรุนแรง";
+                  note = "อาจมีอาการของโรคหัวใจ ต้องตรวจทันที";
+                  dotColor = const Color(0xFFC62828);
+                  bgColor = const Color.fromARGB(255, 249, 249, 249);
+                }
+
+                // --- UI พาเนลหลัก ---
+                return Container(
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // แถวหัวข้อ
+                      Row(
+                        children: [
+                          Text(
+                            "แนวโน้มของภาวะ: $level",
+                            style: TextStyle(
+                              color: dotColor,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: dotColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // กล่อง 1 : ค่าเซนเซอร์
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 250, 250, 250),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 5,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          "ค่าชีพจรอยู่ในเกณฑ์ปกติ:\nHR = ${widget.value ?? '-'} bpm\nค่า SpO₂ อยู่ในระดับดี",
+                          style: const TextStyle(fontSize: 14, height: 1.4),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // กล่อง 2 : ข้อสังเกต
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 10),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 250, 250, 250),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 5,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          p < 0.50
+                              ? "ไม่พบความผิดปกติที่เกี่ยวข้องในขณะนี้ ระบบไม่พบสัญญาณที่ต้องเฝ้าระวัง"
+                              : "พบแนวโน้มความเสี่ยงจากการประเมิน ควรติดตามอาการและตรวจซ้ำ",
+                          style: const TextStyle(fontSize: 14, height: 1.4),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+
+                      // กล่อง 3 : ข้อแนะนำ
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color.fromARGB(255, 250, 250, 250),
+                          borderRadius: BorderRadius.circular(14),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 5,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          p < 0.25
+                              ? "สุขภาพหัวใจปกติดี แนะนำตรวจสุขภาพประจำปีตามปกติ"
+                              : (p < 0.50
+                                  ? "ควรรักษาสุขภาพ ออกกำลังกายและพักผ่อนให้เพียงพอ"
+                                  : (p < 0.75
+                                      ? "ควรเข้ารับการตรวจหัวใจโดยแพทย์เฉพาะทาง"
+                                      : "รีบพบแพทย์โดยทันที หากมีอาการแน่นหน้าอกหรือใจสั่นผิดปกติ")),
+                          style: TextStyle(
+                            color: dotColor,
+                            fontSize: 14,
+                            height: 1.4,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ],
       ),
     );
   }

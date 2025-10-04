@@ -119,7 +119,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 30),
                     Detailbox(
-                      "Event Status",
+                      "ท่าทางและการเคลื่อนไหว",
                       300,
                       null,
                       "assets/images/status_normal.png",
@@ -174,7 +174,7 @@ class _HomePageState extends State<HomePage> {
 
                   // Event/Fall
                   Detailbox(
-                    "Event Status",
+                    "ท่าทางและการเคลื่อนไหว",
                     300,
                     null,
                     fell
