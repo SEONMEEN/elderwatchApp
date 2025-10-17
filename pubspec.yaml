@@ -82,6 +82,9 @@ flutter:
     - assets/models/mlp_best.tflite
     - assets/models/scaler.json
     - assets/models/features.json
+    - assets/models/fall_features.json
+    - assets/models/normalization_stats.json
+    - assets/models/fall_detection_model_best.tflite
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

@@ -1,0 +1,10 @@
+{
+   "features": [
+  "Acc_X",
+  "Acc_Y",
+  "Acc_Z",
+  "Gyro_X",
+  "Gyro_Y",
+  "Gyro_Z"
+]
+}

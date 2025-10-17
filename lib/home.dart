@@ -16,7 +16,7 @@ class _HomePageState extends State<HomePage> {
   final _db = RealtimeDatabaseService();
   int _selectedIndex = 0;
 
-  /// ✅ ดึงค่าล่าสุดมาใช้เป็น initialData เพื่อให้ UI มีค่าโชว์ทันที
+  /// ใช้ initialData เพื่อไม่ให้ UI ว่างตอนเริ่ม
   HealthData? _initial;
 
   void _onMenuTap(int index) {
@@ -35,33 +35,32 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _db.debugPrintLatest(); // debug ดูใน console
-
-    // ดึงค่าล่าสุดแบบ one-shot มาเป็นค่าเริ่มต้น
+    _db.debugPrintLatest(); // debug log
     _db.getLatestOnce().then((v) {
       if (!mounted) return;
       setState(() => _initial = v);
     });
   }
 
+  // ======= เกณฑ์ “ชัก” หลังจากล้ม =======
+  static const int kSeizureHrThresh = 120; // HR ≥ 120
+  static const int kSeizureSpo2Max = 92; // SpO₂ ≤ 92
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
+      backgroundColor: const Color(0xFFFFFFFF),
       body: StreamBuilder<HealthData?>(
         stream: _db.latestHealthFromLogFast(),
-        initialData: _initial, // ✅ ใส่ initialData
+        initialData: _initial,
         builder: (context, snapshot) {
-          // รวมค่า: ใช้ของ stream ก่อน ถ้าไม่มีค่อยใช้ one-shot
           final h = snapshot.data ?? _initial;
 
-          // กำลังโหลดและยังไม่มีค่าเริ่มต้นเลย
           if (h == null &&
               snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // ผิดพลาด
           if (snapshot.hasError) {
             return Center(
               child: Padding(
@@ -71,7 +70,7 @@ class _HomePageState extends State<HomePage> {
             );
           }
 
-          // ยังไม่มีข้อมูล (เช่น อุปกรณ์ยังไม่ส่งขึ้น /log)
+          // ยังไม่มีข้อมูลเลย
           if (h == null) {
             return SingleChildScrollView(
               child: Center(
@@ -135,11 +134,25 @@ class _HomePageState extends State<HomePage> {
             );
           }
 
-          // ✅ มีข้อมูลล่าสุดแล้ว: แสดงจริง
+          // ====== มีข้อมูลล่าสุดแล้ว ======
           final int heartRate = h.heartRate;
           final int spo2 = h.spo2;
           final bool fell = h.fell;
-          final String status = fell ? "⚠️ FALL DETECTED" : "Normal";
+
+          // ขั้นแรก: ตัดสินล้ม/ไม่ล้มจากข้อมูล (จาก RTDB)
+          // ขั้นต่อมา: ถ้าล้มแล้วและ HR/SpO₂ เข้าช่วงเสี่ยง → แสดง “Seizure”
+          final bool seizureNow =
+              fell && heartRate >= kSeizureHrThresh && spo2 <= kSeizureSpo2Max;
+
+          final String statusText =
+              seizureNow ? "Seizure" : (fell ? "Fall" : "Normal");
+
+          final String statusImage =
+              seizureNow
+                  ? "assets/images/status_seizure.png"
+                  : (fell
+                      ? "assets/images/status_fall.png"
+                      : "assets/images/status_normal.png");
 
           return SingleChildScrollView(
             child: Center(
@@ -172,22 +185,19 @@ class _HomePageState extends State<HomePage> {
                   ),
                   const SizedBox(height: 30),
 
-                  // Event/Fall
+                  // Status / Fall / Seizure
                   Detailbox(
                     "ท่าทางและการเคลื่อนไหว",
                     300,
                     null,
-                    fell
-                        ? "assets/images/status_warning.png"
-                        : "assets/images/status_normal.png",
-                    status,
+                    statusImage,
+                    statusText, // 👈 ส่งสถานะเป็นคำสั้นๆ: Normal | Fall | Seizure
                     const Color.fromRGBO(232, 254, 233, 1),
                     "status",
                   ),
 
                   const SizedBox(height: 12),
 
-                  // แสดงเวลาที่อัปเดตล่าสุด (ถ้าโมเดล HealthData มี timestamp เป็นวินาที)
                   if ((h.timestamp) != null && h.timestamp > 0)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -239,7 +249,7 @@ class _HeaderBar extends StatelessWidget {
                   MaterialPageRoute(builder: (_) => Fromhealth()),
                 );
               },
-              child: const SizedBox(width: 80, height: 80), // touch area
+              child: const SizedBox(width: 80, height: 80),
             ),
           ),
         ],
